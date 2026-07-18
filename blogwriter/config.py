@@ -1,20 +1,29 @@
-from __future__ import annotations
-
-import operator
-from typing import TypedDict, List, Annotated
-
-from pydantic import BaseModel, Field
-from langgraph.graph import StateGraph, START, END
-from langgraph.types import Send
-
+from aiohttp import worker
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_huggingface import ChatHuggingFace
 from langchain_groq import ChatGroq
-from langchain_core.messages import SystemMessage, HumanMessage
-
-from blogwriter.states import Plan, State
 from dotenv import load_dotenv
 
+from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
 load_dotenv()
+import os
 
-llm = ChatGroq(model="llama-3.3-70b-versatile")
+### leave variable as it is
+llmhf= HuggingFaceEndpoint(
+    repo_id="openai/gpt-oss-120b",
+    task="text-generation",
+    huggingfacehub_api_token= os.getenv("HUGGINGFACE_API_KEY")
+)
+
+
+llmorchestrator =ChatGroq(model="llama-3.3-70b-versatile")
+
+llmresearcher =ChatGroq(model="llama-3.3-70b-versatile")
+
+llmworker = ChatHuggingFace(llm=llmhf)
+
+llmrouter = ChatGroq(model="llama-3.3-70b-versatile")
+
+
+# llm = llmgeminipro25

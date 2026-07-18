@@ -1,71 +1,81 @@
-from __future__ import annotations
-
-import operator
-from typing import TypedDict, List, Annotated
-
-from pydantic import BaseModel, Field
-from langgraph.graph import StateGraph, START, END
-from langgraph.types import Send
-
-from langchain_openai import ChatOpenAI
+from blogwriter.schemas import Plan, Task, EvidenceItem
+# from blogwriter.config import llm
+from blogwriter.config import  llmworker
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from blogwriter.config import llm
-from blogwriter.states import Plan, State
 
+WORKER_SYSTEM = """You are a senior technical writer and developer advocate.
+Write ONE section of a technical blog post in Markdown.
 
-def worker(payload: dict) -> dict:
+Hard constraints:
+- Follow the provided Goal and cover ALL Bullets in order (do not skip or merge bullets).
+- Stay close to Target words (±15%).
+- Output ONLY the section content in Markdown (no blog title H1, no extra commentary).
+- Start with a '## <Section Title>' heading.
 
-    task = payload["task"]
+Scope guard:
+- If blog_kind == "news_roundup": do NOT turn this into a tutorial/how-to guide.
+  Do NOT teach web scraping, RSS, automation, or "how to fetch news" unless bullets explicitly ask for it.
+  Focus on summarizing events and implications.
+
+Grounding policy:
+- If mode == open_book:
+  - Do NOT introduce any specific event/company/model/funding/policy claim unless it is supported by provided Evidence URLs.
+  - For each event claim, attach a source as a Markdown link: ([Source](URL)).
+  - Only use URLs provided in Evidence. If not supported, write: "Not found in provided sources."
+- If requires_citations == true:
+  - For outside-world claims, cite Evidence URLs the same way.
+- Evergreen reasoning is OK without citations unless requires_citations is true.
+
+Code:
+- If requires_code == true, include at least one minimal, correct code snippet relevant to the bullets.
+
+Style:
+- Short paragraphs, bullets where helpful, code fences for code.
+- Avoid fluff/marketing. Be precise and implementation-oriented.
+"""
+
+def worker_node(payload: dict) -> dict:
+    
+    task = Task(**payload["task"])
+    plan = Plan(**payload["plan"])
+    evidence = [EvidenceItem(**e) for e in payload.get("evidence", [])]
     topic = payload["topic"]
-    plan = payload["plan"]
+    mode = payload.get("mode", "closed_book")
 
     bullets_text = "\n- " + "\n- ".join(task.bullets)
 
-    section_md = llm.invoke(
+    evidence_text = ""
+    if evidence:
+        evidence_text = "\n".join(
+            f"- {e.title} | {e.url} | {e.published_at or 'date:unknown'}".strip()
+            for e in evidence[:20]
+        )
+
+    section_md = llmworker.invoke(
         [
-            SystemMessage(
-    content=(
-        "You are a senior technical writer and developer advocate. Write ONE section of a technical blog post in Markdown.\n\n"
-        "Hard constraints:\n"
-        "- Follow the provided Goal and cover ALL Bullets in order (do not skip or merge bullets).\n"
-        "- Stay close to the Target words (±15%).\n"
-        "- Output ONLY the section content in Markdown (no blog title H1, no extra commentary).\n\n"
-        "Technical quality bar:\n"
-        "- Be precise and implementation-oriented (developers should be able to apply it).\n"
-        "- Prefer concrete details over abstractions: APIs, data structures, protocols, and exact terms.\n"
-        "- When relevant, include at least one of:\n"
-        "  * a small code snippet (minimal, correct, and idiomatic)\n"
-        "  * a tiny example input/output\n"
-        "  * a checklist of steps\n"
-        "  * a diagram described in text (e.g., 'Flow: A -> B -> C')\n"
-        "- Explain trade-offs briefly (performance, cost, complexity, reliability).\n"
-        "- Call out edge cases / failure modes and what to do about them.\n"
-        "- If you mention a best practice, add the 'why' in one sentence.\n\n"
-        "Markdown style:\n"
-        "- Start with a '## <Section Title>' heading.\n"
-        "- Use short paragraphs, bullet lists where helpful, and code fences for code.\n"
-        "- Avoid fluff. Avoid marketing language.\n"
-        "- If you include code, keep it focused on the bullet being addressed.\n"
-    )
-)
-,
+            SystemMessage(content=WORKER_SYSTEM),
             HumanMessage(
                 content=(
-                    f"Blog: {plan.blog_title}\n"
+                    f"Blog title: {plan.blog_title}\n"
                     f"Audience: {plan.audience}\n"
                     f"Tone: {plan.tone}\n"
-                    f"Topic: {topic}\n\n"
-                    f"Section: {task.title}\n"
-                    f"Section type: {task.section_type}\n"
+                    f"Blog kind: {plan.blog_kind}\n"
+                    f"Constraints: {plan.constraints}\n"
+                    f"Topic: {topic}\n"
+                    f"Mode: {mode}\n\n"
+                    f"Section title: {task.title}\n"
                     f"Goal: {task.goal}\n"
                     f"Target words: {task.target_words}\n"
-                    f"Bullets:{bullets_text}\n"
+                    f"Tags: {task.tags}\n"
+                    f"requires_research: {task.requires_research}\n"
+                    f"requires_citations: {task.requires_citations}\n"
+                    f"requires_code: {task.requires_code}\n"
+                    f"Bullets:{bullets_text}\n\n"
+                    f"Evidence (ONLY use these URLs when citing):\n{evidence_text}\n"
                 )
             ),
         ]
     ).content.strip()
 
-    return {"sections": [section_md]}
-
-
+    return {"sections": [(task.id, section_md)]}

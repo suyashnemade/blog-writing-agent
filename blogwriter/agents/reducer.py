@@ -1,31 +1,17 @@
-from __future__ import annotations
 
-import operator
-from typing import TypedDict, List, Annotated
-
-from pydantic import BaseModel, Field
-from langgraph.graph import StateGraph, START, END
-from langgraph.types import Send
-
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-from blogwriter.config import llm
-from blogwriter.states import Plan, State
-
-
+from blogwriter.states import State
+from blogwriter.schemas import Plan
 from pathlib import Path
 
-def reducer(state: State) -> dict:
-    
-    title = state["plan"].blog_title
-    body = "\n\n".join(state["sections"]).strip()
+def reducer_node(state: State) -> dict:
 
-    final_md = f"# {title}\n\n{body}\n"
+    plan = state["plan"]
 
-    # ---- save to file ----
-    filename = title.lower().replace(" ", "_") + ".md"
-    output_path = Path(filename)
-    output_path.write_text(final_md, encoding="utf-8")
+    ordered_sections = [md for _, md in sorted(state["sections"], key=lambda x: x[0])]
+    body = "\n\n".join(ordered_sections).strip()
+    final_md = f"# {plan.blog_title}\n\n{body}\n"
+
+    filename = f"{plan.blog_title}.md"
+    Path(filename).write_text(final_md, encoding="utf-8")
 
     return {"final": final_md}

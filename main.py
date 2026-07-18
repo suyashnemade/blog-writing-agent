@@ -1,17 +1,24 @@
 from blogwriter.workflow import app
 
 
-def main():
-    topic = "Write a blog on Self Attention"
-    result = app.invoke(
+
+def main(topic: str):
+    out = app.invoke(
         {
             "topic": topic,
+            "mode": "",
+            "needs_research": False,
+            "queries": [],
+            "evidence": [],
+            "plan": None,
             "sections": [],
+            "final": "",
         }
     )
 
-    print(result)
+    return out
 
 
 if __name__ == "__main__":
-    main()
+    result = main("State of Multimodal LLMs in 2026")
+    print(result)

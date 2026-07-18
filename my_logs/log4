@@ -1,0 +1,8 @@
+adding research feature for the agent for recent things
+
+
+adding router to decide whether given topic needs research or not.
+if it needs research  it also suggest search queries
+
+
+internet search will be done using tavily
