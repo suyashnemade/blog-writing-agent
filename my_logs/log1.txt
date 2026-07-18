@@ -1,0 +1,11 @@
+created a enviorrnment
+
+installed required packages
+
+now i will start creating the basic project structure
+
+
+
+first commit
+
+
