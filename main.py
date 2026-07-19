@@ -16,8 +16,11 @@ def main(topic: str, as_of: Optional[str] = None):
             "evidence": [],
             "plan": None,
             "as_of": as_of,
-            "recency_days": 7,   # router may overwrite
+            "recency_days": 7,
             "sections": [],
+            "merged_md": "",
+            "md_with_placeholders": "",
+            "image_specs": [],
             "final": "",
         }
     )
@@ -28,3 +31,6 @@ def main(topic: str, as_of: Optional[str] = None):
 if __name__ == "__main__":
     result = main("Claude Code Journey")
     print(result)
+
+
+

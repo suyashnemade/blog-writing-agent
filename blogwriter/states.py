@@ -31,3 +31,10 @@ class State(TypedDict):
     # workers
     sections: Annotated[List[tuple[int, str]], operator.add]  # (task_id, section_md)
     final: str
+
+    #image
+    merged_md: str
+    md_with_placeholders: str
+    image_specs: List[dict]
+
+    final: str

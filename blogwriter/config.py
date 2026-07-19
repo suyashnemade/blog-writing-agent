@@ -25,5 +25,6 @@ llmworker = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
 
 llmrouter = ChatGroq(model="llama-3.3-70b-versatile")
 
+llmreducer = ChatGroq(model="llama-3.3-70b-versatile")
 
 # llm = llmgeminipro25
