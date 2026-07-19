@@ -4,8 +4,9 @@ from blogwriter.schemas import Plan
 from pathlib import Path
 
 def reducer_node(state: State) -> dict:
-
     plan = state["plan"]
+    if plan is None:
+        raise ValueError("Reducer called without a plan.")
 
     ordered_sections = [md for _, md in sorted(state["sections"], key=lambda x: x[0])]
     body = "\n\n".join(ordered_sections).strip()

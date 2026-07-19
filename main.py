@@ -1,8 +1,12 @@
+from datetime import date
+from typing import Optional
 from blogwriter.workflow import app
 
 
+def main(topic: str, as_of: Optional[str] = None):
+    if as_of is None:
+        as_of = date.today().isoformat()
 
-def main(topic: str):
     out = app.invoke(
         {
             "topic": topic,
@@ -11,6 +15,8 @@ def main(topic: str):
             "queries": [],
             "evidence": [],
             "plan": None,
+            "as_of": as_of,
+            "recency_days": 7,   # router may overwrite
             "sections": [],
             "final": "",
         }
@@ -20,5 +26,5 @@ def main(topic: str):
 
 
 if __name__ == "__main__":
-    result = main("State of Multimodal LLMs in 2026")
+    result = main("Claude Code Journey")
     print(result)

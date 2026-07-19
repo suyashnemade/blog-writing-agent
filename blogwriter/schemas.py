@@ -49,7 +49,9 @@ class EvidenceItem(BaseModel):
 class RouterDecision(BaseModel):
     needs_research: bool
     mode: Literal["closed_book", "hybrid", "open_book"]
+    reason: str
     queries: List[str] = Field(default_factory=list)
+    max_results_per_query: int = Field(5, description="How many results to fetch per query (3–8).")
 
 
 class EvidencePack(BaseModel):

@@ -1,4 +1,3 @@
-from aiohttp import worker
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import ChatHuggingFace
@@ -21,7 +20,8 @@ llmorchestrator =ChatGroq(model="llama-3.3-70b-versatile")
 
 llmresearcher =ChatGroq(model="llama-3.3-70b-versatile")
 
-llmworker = ChatHuggingFace(llm=llmhf)
+# llmworker = ChatHuggingFace(llm=llmhf)
+llmworker = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
 
 llmrouter = ChatGroq(model="llama-3.3-70b-versatile")
 

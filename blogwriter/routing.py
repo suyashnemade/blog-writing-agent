@@ -3,6 +3,7 @@ from blogwriter.states import State
 
 
 def fanout(state: State):
+    assert state["plan"] is not None
     return [
         Send(
             "worker",
@@ -10,6 +11,8 @@ def fanout(state: State):
                 "task": task.model_dump(),
                 "topic": state["topic"],
                 "mode": state["mode"],
+                "as_of": state["as_of"],
+                "recency_days": state["recency_days"],
                 "plan": state["plan"].model_dump(),
                 "evidence": [e.model_dump() for e in state.get("evidence", [])],
             },

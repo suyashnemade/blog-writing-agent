@@ -20,7 +20,7 @@ Modes:
 If needs_research=true:
 - Output 3–10 high-signal queries.
 - Queries should be scoped and specific (avoid generic queries like just "AI" or "LLM").
-- If user asked for "last week/this week/latest", reflect that constraint IN THE QUERIES.
+- For open_book weekly roundup, include queries that reflect the last 7 days constraint.
 """
 
 def router_node(state: State) -> dict:
@@ -30,14 +30,23 @@ def router_node(state: State) -> dict:
     decision = decider.invoke(
         [
             SystemMessage(content=ROUTER_SYSTEM),
-            HumanMessage(content=f"Topic: {topic}"),
+            HumanMessage(content=f"Topic: {topic}\nAs-of date: {state['as_of']}"),
         ]
     )
+
+    # Set default recency window based on mode
+    if decision.mode == "open_book":
+        recency_days = 7
+    elif decision.mode == "hybrid":
+        recency_days = 45
+    else:
+        recency_days = 3650
 
     return {
         "needs_research": decision.needs_research,
         "mode": decision.mode,
         "queries": decision.queries,
+        "recency_days": recency_days,
     }
 
 

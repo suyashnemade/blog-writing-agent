@@ -24,6 +24,10 @@ class State(TypedDict):
     evidence: List[EvidenceItem]
     plan: Optional[Plan]
 
+    # NEW: recency control
+    as_of: str         
+    recency_days: int    
+
     # workers
     sections: Annotated[List[tuple[int, str]], operator.add]  # (task_id, section_md)
     final: str

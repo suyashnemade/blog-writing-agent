@@ -13,19 +13,19 @@ Hard constraints:
 - Output ONLY the section content in Markdown (no blog title H1, no extra commentary).
 - Start with a '## <Section Title>' heading.
 
-Scope guard:
+Scope guard (prevents mid-blog topic drift):
 - If blog_kind == "news_roundup": do NOT turn this into a tutorial/how-to guide.
   Do NOT teach web scraping, RSS, automation, or "how to fetch news" unless bullets explicitly ask for it.
   Focus on summarizing events and implications.
 
 Grounding policy:
-- If mode == open_book:
+- If mode == open_book (weekly news):
   - Do NOT introduce any specific event/company/model/funding/policy claim unless it is supported by provided Evidence URLs.
   - For each event claim, attach a source as a Markdown link: ([Source](URL)).
   - Only use URLs provided in Evidence. If not supported, write: "Not found in provided sources."
-- If requires_citations == true:
+- If requires_citations == true (hybrid sections):
   - For outside-world claims, cite Evidence URLs the same way.
-- Evergreen reasoning is OK without citations unless requires_citations is true.
+- Evergreen reasoning (concepts, intuition) is OK without citations unless requires_citations is true.
 
 Code:
 - If requires_code == true, include at least one minimal, correct code snippet relevant to the bullets.
@@ -42,9 +42,12 @@ def worker_node(payload: dict) -> dict:
     evidence = [EvidenceItem(**e) for e in payload.get("evidence", [])]
     topic = payload["topic"]
     mode = payload.get("mode", "closed_book")
+    as_of = payload.get("as_of")
+    recency_days = payload.get("recency_days")
 
     bullets_text = "\n- " + "\n- ".join(task.bullets)
 
+    # Provide a compact evidence list for citation use
     evidence_text = ""
     if evidence:
         evidence_text = "\n".join(
@@ -52,7 +55,7 @@ def worker_node(payload: dict) -> dict:
             for e in evidence[:20]
         )
 
-    section_md = llmworker.invoke(
+    response = llmworker.invoke(
         [
             SystemMessage(content=WORKER_SYSTEM),
             HumanMessage(
@@ -63,7 +66,8 @@ def worker_node(payload: dict) -> dict:
                     f"Blog kind: {plan.blog_kind}\n"
                     f"Constraints: {plan.constraints}\n"
                     f"Topic: {topic}\n"
-                    f"Mode: {mode}\n\n"
+                    f"Mode: {mode}\n"
+                    f"As-of: {as_of} (recency_days={recency_days})\n\n"
                     f"Section title: {task.title}\n"
                     f"Goal: {task.goal}\n"
                     f"Target words: {task.target_words}\n"
@@ -76,6 +80,16 @@ def worker_node(payload: dict) -> dict:
                 )
             ),
         ]
-    ).content.strip()
+    )
 
+    content = response.content
+    if isinstance(content, list):
+        section_md = "".join(
+            part if isinstance(part, str) else (part.get("text", "") if isinstance(part, dict) else "")
+            for part in content
+        ).strip()
+    else:
+        section_md = content.strip()
+
+    # deterministic ordering
     return {"sections": [(task.id, section_md)]}
